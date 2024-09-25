@@ -34,7 +34,7 @@
 #define SYS_CLK_32KHz		8		//8 内部低频32KHz RC  振荡器
 #define SYS_CLK_XTAL_32K	9		//9 外部低频32KHz 晶体振荡器
 
-#define SYS_CLK   SYS_CLK_XTAL
+#define SYS_CLK   SYS_CLK_30MHz
 
 
 #define __HSI		(30000000UL)		//高速内部时钟

@@ -5,8 +5,6 @@ void JumpToApp(uint32_t addr);
 
 int main(void)
 {
- 	uint32_t i, j;
-	
 	SystemInit();
 	
 	SerialInit();
@@ -16,13 +14,13 @@ int main(void)
 	
 	if(GPIO_GetBit(GPIOA, PIN2) == 0)		// 检测到特定信号（或者检测到APP程序不完整）
 	{
-		for(i = 0; i < 10; i++)				// 模拟UserBoot更新APP程序的过程
+		for(int i = 0; i < 10; i++)			// 模拟UserBoot更新APP程序的过程
 		{
 			GPIO_InvBit(GPIOA, PIN5);
 			
 			printf("Running in UserBoot\r\n");
 			
-			for(j = 0; j < SystemCoreClock/24; j++) __NOP();
+			for(int j = 0; j < SystemCoreClock/24; j++) __NOP();
 		}
 	}
 	else
@@ -36,7 +34,7 @@ int main(void)
 	SYS->PRSTEN = 0x55;
 	SYS->PRSTR0 = 0xFFFFFFFF & (~SYS_PRSTR0_ANAC_Msk);
 	SYS->PRSTR1 = 0xFFFFFFFF;
-	for(i = 0; i < CyclesPerUs; i++) __NOP();
+	for(int i = 0; i < CyclesPerUs; i++) __NOP();
 	SYS->PRSTR0 = 0;
 	SYS->PRSTR1 = 0;
 	SYS->PRSTEN = 0;

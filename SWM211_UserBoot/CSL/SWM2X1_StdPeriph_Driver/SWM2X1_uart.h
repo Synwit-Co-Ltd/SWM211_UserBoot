@@ -46,6 +46,16 @@ typedef struct {
 #define UART_ERR_NOISE		3
 
 
+/* Interrupt Type */
+#define UART_IT_RX_THR		(1 << UART_CTRL_RXIE_Pos)	//RX FIFO Threshold, RX FIFO中数据个数 >  RXThreshold
+#define UART_IT_RX_TOUT		(1 << UART_CTRL_TOIE_Pos)	//RX Timeout, 超过 TimeoutTime/(Baudrate/10) 秒没有在RX线上接收到数据
+#define UART_IT_TX_THR		(1 << UART_CTRL_TXIE_Pos)	//TX FIFO Threshold, TX FIFO中数据个数 <= TXThreshold
+#define UART_IT_TX_DONE		(1 << UART_CTRL_TXDOIE_Pos)	//TX Done, 发送FIFO空且发送发送移位寄存器已将最后一位发送出去
+
+#define UART_IT_LIN_DET		(1 << UART_LINCR_BRKDETIE_Pos)
+#define UART_IT_LIN_GEN		(1 << UART_LINCR_GENBRKIE_Pos)
+
+
 void UART_Init(UART_TypeDef * UARTx, UART_InitStructure * initStruct);	//UART串口初始化
 void UART_Open(UART_TypeDef * UARTx);
 void UART_Close(UART_TypeDef * UARTx);
@@ -69,25 +79,22 @@ uint32_t UART_RTSLineState(UART_TypeDef * UARTx);
 
 void UART_LINConfig(UART_TypeDef * UARTx, uint32_t detectedLen, uint32_t detectedIEn, uint32_t generatedLen, uint32_t generatedIEn);
 void UART_LINGenerate(UART_TypeDef * UARTx);
-uint32_t UART_LINIsDetected(UART_TypeDef * UARTx);
-uint32_t UART_LINIsGenerated(UART_TypeDef * UARTx);
+
+void UART_LININTEn(UART_TypeDef * UARTx, uint32_t it);
+void UART_LININTDis(UART_TypeDef * UARTx, uint32_t it);
+void UART_LININTClr(UART_TypeDef * UARTx, uint32_t it);
+uint32_t UART_LININTStat(UART_TypeDef * UARTx, uint32_t it);
+
+uint8_t UART_LIN_IDParity(uint8_t lin_id);
+uint8_t UART_LIN_Checksum(uint8_t lin_id, uint8_t data[], uint32_t count, bool enhanced_checksum);
 
 void UART_ABRStart(UART_TypeDef * UARTx, uint32_t detectChar);
 uint32_t UART_ABRIsDone(UART_TypeDef * UARTx);
 
 
-void UART_INTRXThresholdEn(UART_TypeDef * UARTx);
-void UART_INTRXThresholdDis(UART_TypeDef * UARTx);
-uint32_t UART_INTRXThresholdStat(UART_TypeDef * UARTx);
-void UART_INTTXThresholdEn(UART_TypeDef * UARTx);
-void UART_INTTXThresholdDis(UART_TypeDef * UARTx);
-uint32_t UART_INTTXThresholdStat(UART_TypeDef * UARTx);
-void UART_INTTimeoutEn(UART_TypeDef * UARTx);
-void UART_INTTimeoutDis(UART_TypeDef * UARTx);
-uint32_t UART_INTTimeoutStat(UART_TypeDef * UARTx);
-
-void UART_INTTXDoneEn(UART_TypeDef * UARTx);
-void UART_INTTXDoneDis(UART_TypeDef * UARTx);
-uint32_t UART_INTTXDoneStat(UART_TypeDef * UARTx);
+void UART_INTEn(UART_TypeDef * UARTx, uint32_t it);
+void UART_INTDis(UART_TypeDef * UARTx, uint32_t it);
+void UART_INTClr(UART_TypeDef * UARTx, uint32_t it);
+uint32_t UART_INTStat(UART_TypeDef * UARTx, uint32_t it);
 
 #endif //__SWM2X1_UART_H__

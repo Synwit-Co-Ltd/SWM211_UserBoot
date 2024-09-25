@@ -59,7 +59,8 @@ void UART_Init(UART_TypeDef * UARTx, UART_InitStructure * initStruct)
 				   (initStruct->TXThreshold << UART_FIFO_TXTHR_Pos);
 	
 	UARTx->TOCR &= ~UART_TOCR_TIME_Msk;
-	UARTx->TOCR |= (initStruct->TimeoutTime << UART_TOCR_TIME_Pos);
+	UARTx->TOCR |= (1 << UART_TOCR_MODE_Pos) |
+				   (initStruct->TimeoutTime << UART_TOCR_TIME_Pos);
 	
 	UARTx->CTRL &= ~(UART_CTRL_RXIE_Msk | UART_CTRL_TXIE_Msk | UART_CTRL_TOIE_Msk);
 	UARTx->CTRL |= (initStruct->RXThresholdIEn << UART_CTRL_RXIE_Pos) |
@@ -304,27 +305,92 @@ void UART_LINGenerate(UART_TypeDef * UARTx)
 }
 
 /****************************************************************************************************************************************** 
-* 函数名称:	UART_LINIsDetected()
-* 功能说明:	UART LIN是否检测到Break
+* 函数名称:	UART_LININTEn()
+* 功能说明:	LIN 中断使能
 * 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: uint32_t				1 检测到LIN Break    0 未检测到LIN Break
+* 			uint32_t it				interrupt type，有效值有 UART_IT_LIN_DET、UART_IT_LIN_GEN 及其“或”
+* 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
-uint32_t UART_LINIsDetected(UART_TypeDef * UARTx)
+void UART_LININTEn(UART_TypeDef * UARTx, uint32_t it)
 {
-	return (UARTx->LINCR & UART_LINCR_BRKDETIF_Msk) ? 1 : 0;
+	UARTx->LINCR |= it;
 }
 
 /****************************************************************************************************************************************** 
-* 函数名称:	UART_LINIsGenerated()
-* 功能说明:	UART LIN Break是否发送完成
+* 函数名称:	UART_LININTDis()
+* 功能说明:	LIN 中断禁止
 * 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: uint32_t				1 LIN Break 发送完成    0 LIN Break发送未完成
+* 			uint32_t it				interrupt type，有效值有 UART_IT_LIN_DET、UART_IT_LIN_GEN 及其“或”
+* 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
-uint32_t UART_LINIsGenerated(UART_TypeDef * UARTx)
+void UART_LININTDis(UART_TypeDef * UARTx, uint32_t it)
 {
-	return (UARTx->LINCR & UART_LINCR_GENBRKIF_Msk) ? 1 : 0;
+	UARTx->LINCR &= ~it;
+}
+
+/****************************************************************************************************************************************** 
+* 函数名称:	UART_LININTClr()
+* 功能说明:	LIN 中断标志清除
+* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
+* 			uint32_t it				interrupt type，有效值有 UART_IT_LIN_DET、UART_IT_LIN_GEN 及其“或”
+* 输    出: 无
+* 注意事项: 无
+******************************************************************************************************************************************/
+void UART_LININTClr(UART_TypeDef * UARTx, uint32_t it)
+{
+	UARTx->LINCR |= (it << 1);
+}
+
+/****************************************************************************************************************************************** 
+* 函数名称:	UART_LININTStat()
+* 功能说明:	LIN 中断状态查询
+* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
+* 			uint32_t it				interrupt type，有效值有 UART_IT_LIN_DET、UART_IT_LIN_GEN 及其“或”
+* 输    出: uint32_t				非0 中断已发生    0 中断未发生
+* 注意事项: 无
+******************************************************************************************************************************************/
+uint32_t UART_LININTStat(UART_TypeDef * UARTx, uint32_t it)
+{
+	return (UARTx->LINCR & (it << 1));
+}
+
+uint8_t UART_LIN_IDParity(uint8_t lin_id)
+{
+	struct {
+		uint8_t b0 : 1;
+		uint8_t b1 : 1;
+		uint8_t b2 : 1;
+		uint8_t b3 : 1;
+		uint8_t b4 : 1;
+		uint8_t b5 : 1;
+		uint8_t b6 : 1;
+		uint8_t b7 : 1;
+	} * bits = (void *)&lin_id;
+	
+	uint8_t id_P0 =  (bits->b0 ^ bits->b1 ^ bits->b2 ^ bits->b4);
+	uint8_t id_P1 = ~(bits->b1 ^ bits->b3 ^ bits->b4 ^ bits->b5);
+	
+	return (lin_id & 0x3F) | (id_P0 << 6) | (id_P1 << 7);
+}
+
+uint8_t UART_LIN_Checksum(uint8_t lin_id, uint8_t data[], uint32_t count, bool enhanced_checksum)
+{
+	uint16_t checksum;
+	
+	if(enhanced_checksum && ((lin_id & 0x3F) != 60) && ((lin_id & 0x3F) != 61))
+		checksum = lin_id;
+	else
+		checksum = 0x00;
+	
+	for(int i = 0; i < count; i++)
+	{
+		checksum += data[i];
+		checksum = (checksum & 0xFF) + (checksum >> 8);
+	}
+	
+	return ~checksum;
 }
 
 /****************************************************************************************************************************************** 
@@ -376,145 +442,57 @@ uint32_t UART_ABRIsDone(UART_TypeDef * UARTx)
 }
 
 /****************************************************************************************************************************************** 
-* 函数名称:	UART_INTRXThresholdEn()
-* 功能说明:	当RX FIFO中数据个数 >= RXThreshold时 触发中断
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
+* 函数名称:	UART_INTEn()
+* 功能说明:	中断使能
+* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1、UART2、UART3
+* 			uint32_t it				interrupt type，有效值有 UART_IT_RX_THR、UART_IT_RX_TOUT、UART_IT_TX_THR、UART_IT_TX_DONE 及其“或”
 * 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
-void UART_INTRXThresholdEn(UART_TypeDef * UARTx)
+void UART_INTEn(UART_TypeDef * UARTx, uint32_t it)
 {
-	UARTx->CTRL |= (0x01 << UART_CTRL_RXIE_Pos);
+	UARTx->CTRL |= it;
 }
 
 /****************************************************************************************************************************************** 
-* 函数名称:	UART_INTRXThresholdDis()
-* 功能说明:	当RX FIFO中数据个数 >= RXThreshold时 不触发中断
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
+* 函数名称:	UART_INTDis()
+* 功能说明:	中断禁止
+* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1、UART2、UART3
+* 			uint32_t it				interrupt type，有效值有 UART_IT_RX_THR、UART_IT_RX_TOUT、UART_IT_TX_THR、UART_IT_TX_DONE 及其“或”
 * 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
-void UART_INTRXThresholdDis(UART_TypeDef * UARTx)
+void UART_INTDis(UART_TypeDef * UARTx, uint32_t it)
 {
-	UARTx->CTRL &= ~(0x01 << UART_CTRL_RXIE_Pos);
+	UARTx->CTRL &= ~it;
 }
 
 /****************************************************************************************************************************************** 
-* 函数名称:	UART_INTRXThresholdStat()
-* 功能说明:	是否RX FIFO中数据个数 >= RXThreshold
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: uint32_t				1 RX FIFO中数据个数 >= RXThreshold		0 RX FIFO中数据个数 < RXThreshold
-* 注意事项: RXIF = RXTHRF & RXIE
-******************************************************************************************************************************************/
-uint32_t UART_INTRXThresholdStat(UART_TypeDef * UARTx)
-{
-	return (UARTx->BAUD & UART_BAUD_RXIF_Msk) ? 1 : 0;
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称:	UART_INTTXThresholdEn()
-* 功能说明:	当TX FIFO中数据个数 <= TXThreshold时 触发中断
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
+* 函数名称:	UART_INTClr()
+* 功能说明:	中断标志清除
+* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1、UART2、UART3
+* 			uint32_t it				interrupt type，有效值有 UART_IT_RX_TOUT
 * 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
-void UART_INTTXThresholdEn(UART_TypeDef * UARTx)
+void UART_INTClr(UART_TypeDef * UARTx, uint32_t it)
 {
-	UARTx->CTRL |= (0x01 << UART_CTRL_TXIE_Pos);	
+	if(it & UART_IT_RX_TOUT)
+		UARTx->TOCR |= UART_TOCR_IFCLR_Msk;
 }
 
 /****************************************************************************************************************************************** 
-* 函数名称:	UART_INTTXThresholdDis()
-* 功能说明:	当TX FIFO中数据个数 <= TXThreshold时 不触发中断
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: 无
+* 函数名称:	UART_INTStat()
+* 功能说明:	中断状态查询
+* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1、UART2、UART3
+* 			uint32_t it				interrupt type，有效值有 UART_IT_RX_THR、UART_IT_RX_TOUT、UART_IT_TX_THR、UART_IT_TX_DONE 及其“或”
+* 输    出: uint32_t				1 中断已发生    0 中断未发生
 * 注意事项: 无
 ******************************************************************************************************************************************/
-void UART_INTTXThresholdDis(UART_TypeDef * UARTx)
+uint32_t UART_INTStat(UART_TypeDef * UARTx, uint32_t it)
 {
-	UARTx->CTRL &= ~(0x01 << UART_CTRL_TXIE_Pos);
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称:	UART_INTTXThresholdStat()
-* 功能说明:	是否TX FIFO中数据个数 <= TXThreshold
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: uint32_t				1 TX FIFO中数据个数 <= TXThreshold		0 TX FIFO中数据个数 > TXThreshold
-* 注意事项: TXIF = TXTHRF & TXIE
-******************************************************************************************************************************************/
-uint32_t UART_INTTXThresholdStat(UART_TypeDef * UARTx)
-{
-	return (UARTx->BAUD & UART_BAUD_TXIF_Msk) ? 1 : 0;
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称:	UART_INTTimeoutEn()
-* 功能说明:	接收发生超时时 触发中断
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: 无
-* 注意事项: 无
-******************************************************************************************************************************************/
-void UART_INTTimeoutEn(UART_TypeDef * UARTx)
-{
-	UARTx->CTRL |= (0x01 << UART_CTRL_TOIE_Pos);	
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称:	UART_INTTimeoutDis()
-* 功能说明:	接收发生超时时 不触发中断
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: 无
-* 注意事项: 无
-******************************************************************************************************************************************/
-void UART_INTTimeoutDis(UART_TypeDef * UARTx)
-{
-	UARTx->CTRL &= ~(0x01 << UART_CTRL_TOIE_Pos);
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称:	UART_INTTimeoutStat()
-* 功能说明:	是否发生了接收超时，即超过 TimeoutTime/(Baudrate/10) 秒没有在RX线上接收到数据时触发中断
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: uint32_t				1 发生了接收超时		0 未发生接收超时
-* 注意事项: 无
-******************************************************************************************************************************************/
-uint32_t UART_INTTimeoutStat(UART_TypeDef * UARTx)
-{
-	return (UARTx->BAUD & UART_BAUD_TOIF_Msk) ? 1 : 0;
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称:	UART_INTTXDoneEn()
-* 功能说明:	发送FIFO空且发送移位寄存器空中断使能
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: 无
-* 注意事项: 无
-******************************************************************************************************************************************/
-void UART_INTTXDoneEn(UART_TypeDef * UARTx)
-{
-	UARTx->CTRL |= (0x01 << UART_CTRL_TXDOIE_Pos);	
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称:	UART_INTTXDoneDis()
-* 功能说明:	发送FIFO空且发送移位寄存器空中断禁止
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: 无
-* 注意事项: 无
-******************************************************************************************************************************************/
-void UART_INTTXDoneDis(UART_TypeDef * UARTx)
-{
-	UARTx->CTRL &= ~(0x01 << UART_CTRL_TXDOIE_Pos);
-}
-
-/****************************************************************************************************************************************** 
-* 函数名称:	UART_INTTXDoneStat()
-* 功能说明:	发送FIFO空且发送移位寄存器空中断状态
-* 输    入: UART_TypeDef * UARTx	指定要被设置的UART串口，有效值包括UART0、UART1
-* 输    出: uint32_t				1 发送FIFO空且发送移位寄存器空		0 发送FIFO或发送移位寄存器未空
-* 注意事项: 无
-******************************************************************************************************************************************/
-uint32_t UART_INTTXDoneStat(UART_TypeDef * UARTx)
-{
-	return (UARTx->BAUD & UART_BAUD_TXDOIF_Msk) ? 1 : 0;
+	return (((it & UART_IT_RX_THR)  && (UARTx->BAUD & UART_BAUD_RXIF_Msk)) ||
+			((it & UART_IT_RX_TOUT) && (UARTx->BAUD & UART_BAUD_TOIF_Msk)) ||
+			((it & UART_IT_TX_THR)  && (UARTx->BAUD & UART_BAUD_TXIF_Msk)) ||
+			((it & UART_IT_TX_DONE) && (UARTx->BAUD & UART_BAUD_TXDOIF_Msk)));
 }

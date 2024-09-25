@@ -66,6 +66,7 @@ typedef enum IRQn
 #endif
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "core_cm0.h"				   /* Cortex-M0 processor and core peripherals		     */
 #include "system_SWM201.h"
 
@@ -180,8 +181,6 @@ typedef struct {
 #define SYS_CLKSEL_IOFILT_Msk		(0x03 << SYS_CLKSEL_IOFILT_Pos)
 #define SYS_CLKSEL_WDT_Pos			12		//看门狗时钟选择  0 HRC   1 XTAL   2 LRC   3 XTAL_32K
 #define SYS_CLKSEL_WDT_Msk			(0x03 << SYS_CLKSEL_WDT_Pos)
-#define SYS_CLKSEL_RTCTRIM_Pos		14		//RTC Trim参考时钟  0 XTAL   1 XTAL/2   2 XTAL/4   3 XTAL/8
-#define SYS_CLKSEL_RTCTRIM_Msk		(0x03 << SYS_CLKSEL_RTCTRIM_Pos)
 #define SYS_CLKSEL_ADC_Pos			16		//ADC时钟选择  0b0000 HRC   0b0001 XTAL   0b1000 HRC/4   0b1001 XTAL/4   0b1100 HRC/8   0b1101 XTAL/8
 #define SYS_CLKSEL_ADC_Msk			(0x0F << SYS_CLKSEL_ADC_Pos)
 #define SYS_CLKSEL_WKUP_Pos			24		//SLEEP唤醒时钟选择  0 LRC  1 XTAL_32k
@@ -1942,14 +1941,6 @@ typedef struct {
     __IO uint32_t TRIM;                     //时钟调整
     
     __IO uint32_t TRIMM;                    //时钟微调整
-	
-		 uint32_t RESERVED[11];
-	
-	__IO uint32_t CALIBCNT;
-	
-	__IO uint32_t CALIBEN;
-	
-	__IO uint32_t CALIBSR;
 } RTC_TypeDef;
 
 
@@ -2196,6 +2187,54 @@ typedef struct {
 #include "SWM2X1_flash.h"
 #include "SWM2X1_sleep.h"
 #include "SWM2X1_iofilt.h"
+
+
+
+#ifdef  SW_LOG_RTT
+#define log_printf(...)	 	SEGGER_RTT_printf(0, __VA_ARGS__)
+#else
+#define log_printf(...)	 	printf(__VA_ARGS__)
+#endif
+
+
+#ifndef SW_LOG_LEVEL
+#define SW_LOG_LEVEL        0
+#endif
+
+#if (SW_LOG_LEVEL > 0)
+#define SW_LOG_ERR(...)    	{						 \
+							log_printf("ERROR: ");   \
+							log_printf(__VA_ARGS__); \
+							log_printf("\n");		 \
+							}
+
+#if (SW_LOG_LEVEL > 1)
+#define SW_LOG_WARN(...) 	{						 \
+							log_printf("WARN : ");   \
+							log_printf(__VA_ARGS__); \
+							log_printf("\n");		 \
+							}
+
+#if (SW_LOG_LEVEL > 2)
+#define SW_LOG_INFO(...)   	{						 \
+							log_printf("INFO : ");   \
+							log_printf(__VA_ARGS__); \
+							log_printf("\n");		 \
+							}
+#else
+#define SW_LOG_INFO(...)
+#endif
+
+#else
+#define SW_LOG_WARN(...)
+#define SW_LOG_INFO(...)
+#endif
+
+#else
+#define SW_LOG_ERR(...)
+#define SW_LOG_WARN(...)
+#define SW_LOG_INFO(...)
+#endif
 
 
 #endif //__SWM201_H__

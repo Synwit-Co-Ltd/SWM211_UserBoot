@@ -16,7 +16,7 @@
         <TargetCommonOption>
           <Device>SWM201x6</Device>
           <Vendor>Synwit</Vendor>
-          <PackID>Synwit.SWM32_DFP.2.0.8</PackID>
+          <PackID>Synwit.SWM32_DFP.2.1.2</PackID>
           <PackURL>http://www.synwit.com/pack</PackURL>
           <Cpu>IRAM(0x20000000,0x00020000) IROM(0x00000000,0x00040000) CPUTYPE("Cortex-M0") CLOCK(12000000) ESEL ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
@@ -621,7 +621,7 @@
         <TargetCommonOption>
           <Device>SWM211x8</Device>
           <Vendor>Synwit</Vendor>
-          <PackID>Synwit.SWM32_DFP.2.0.8</PackID>
+          <PackID>Synwit.SWM32_DFP.2.1.2</PackID>
           <PackURL>http://www.synwit.com/pack</PackURL>
           <Cpu>IRAM(0x20000000,0x00020000) IROM(0x00000000,0x00040000) CPUTYPE("Cortex-M0") CLOCK(12000000) ESEL ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
@@ -930,7 +930,7 @@
             <wLevel>0</wLevel>
             <uThumb>0</uThumb>
             <uSurpInc>0</uSurpInc>
-            <uC99>0</uC99>
+            <uC99>1</uC99>
             <uGnu>0</uGnu>
             <useXO>0</useXO>
             <v6Lang>1</v6Lang>

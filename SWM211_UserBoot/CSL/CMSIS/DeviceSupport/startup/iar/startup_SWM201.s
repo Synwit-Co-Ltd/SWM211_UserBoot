@@ -50,37 +50,37 @@ __vector_table
 
         ; External Interrupts
         DCD    UART0_Handler
-		DCD    TIMR0_Handler
-		DCD    SPI0_Handler
-		DCD    UART1_Handler
-		DCD    UART2_Handler
-		DCD    TIMR1_Handler
-		DCD    DMA_Handler
-		DCD    PWM0_Handler
-		DCD    BTIMR0_Handler
-		DCD    TIMR2_Handler
-		DCD    TIMR3_Handler
-		DCD    WDT_Handler
-		DCD    I2C4_Handler
-		DCD    UART3_Handler
-		DCD    ADC0_Handler
-		DCD    BTIMR1_Handler
-		DCD    GPIOA9_GPIOC6_Handler
-		DCD    GPIOA6_GPIOC7_Handler
-		DCD    GPIOA7_GPIOC8_Handler
-		DCD    GPIOA8_GPIOC9_Handler
-		DCD    GPIOA10_GPIOC10_Handler
-		DCD    GPIOA13_GPIOC12_Handler
-		DCD    GPIOA12_GPIOC13_Handler
-		DCD    GPIOA11_GPIOC14_Handler
-		DCD    XTALSTOPDET_GPIOC0_Handler
-		DCD    BTIMR2_GPIOB12_Handler
-		DCD    PWM1_GPIOA1_Handler
-		DCD    PWM2_UART4_Handler
-		DCD    BOD_PWMHALT_Handler
-		DCD    PWM3_GPIOB_ACMP_Handler
-		DCD    SPI1_HALL_GPIOD_Handler
-		DCD    BTIMR3_RTC_Handler
+        DCD    TIMR0_Handler
+        DCD    CORDIC_Handler
+        DCD    UART1_Handler
+        DCD    PWM1_Handler
+        DCD    TIMR1_Handler
+        DCD    HALL_Handler
+        DCD    PWM0_Handler
+        DCD    BOD_Handler
+        DCD    PWMBRK_Handler
+        DCD    RTC_Handler
+        DCD    WDT_Handler
+        DCD    I2C0_Handler
+        DCD    XTALSTOP_Handler
+        DCD    ADC0_Handler
+        DCD    ACMP_Handler
+        DCD    BTIMR0_Handler
+        DCD    BTIMR1_Handler
+        DCD    BTIMR2_Handler
+        DCD    BTIMR3_Handler
+        DCD    GPIOA_Handler
+        DCD    GPIOB_Handler
+        DCD    GPIOM_Handler
+        DCD    GPIOA0_GPIOM0_Handler
+        DCD    GPIOA1_GPIOM1_Handler
+        DCD    GPIOA2_GPIOM2_Handler
+        DCD    GPIOA3_GPIOM3_Handler
+        DCD    GPIOB0_GPIOA8_Handler
+        DCD    GPIOB1_GPIOA9_Handler
+        DCD    GPIOB2_GPIOA10_Handler
+        DCD    GPIOB3_GPIOA11_SPI0_Handler
+        DCD    GPIOB4_GPIOB10_QEI_Handler
         
 
         THUMB
@@ -127,154 +127,154 @@ UART0_Handler
 TIMR0_Handler
         B TIMR0_Handler
 
-        PUBWEAK SPI0_Handler
+        PUBWEAK CORDIC_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-SPI0_Handler
-        B SPI0_Handler
+CORDIC_Handler
+        B CORDIC_Handler
 
         PUBWEAK UART1_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
 UART1_Handler
         B UART1_Handler
 
-        PUBWEAK UART2_Handler
+        PUBWEAK PWM1_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-UART2_Handler
-        B UART2_Handler
+PWM1_Handler
+        B PWM1_Handler
 
         PUBWEAK TIMR1_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
 TIMR1_Handler
         B TIMR1_Handler
 
-        PUBWEAK DMA_Handler
+        PUBWEAK HALL_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-DMA_Handler
-        B DMA_Handler
+HALL_Handler
+        B HALL_Handler
 
         PUBWEAK PWM0_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
 PWM0_Handler
         B PWM0_Handler
 
-        PUBWEAK BTIMR0_Handler
+        PUBWEAK BOD_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-BTIMR0_Handler
-        B BTIMR0_Handler
+BOD_Handler
+        B BOD_Handler
 
-        PUBWEAK TIMR2_Handler
+        PUBWEAK PWMBRK_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-TIMR2_Handler
-        B TIMR2_Handler
+PWMBRK_Handler
+        B PWMBRK_Handler
 
-        PUBWEAK TIMR3_Handler
+        PUBWEAK RTC_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-TIMR3_Handler
-        B TIMR3_Handler
+RTC_Handler
+        B RTC_Handler
 
         PUBWEAK WDT_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
 WDT_Handler
         B WDT_Handler
 
-        PUBWEAK I2C4_Handler
+        PUBWEAK I2C0_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-I2C4_Handler
-        B I2C4_Handler
+I2C0_Handler
+        B I2C0_Handler
 
-        PUBWEAK UART3_Handler
+        PUBWEAK XTALSTOP_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-UART3_Handler
-        B UART3_Handler
+XTALSTOP_Handler
+        B XTALSTOP_Handler
 
         PUBWEAK ADC0_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
 ADC0_Handler
         B ADC0_Handler
 
+        PUBWEAK ACMP_Handler
+        SECTION .text:CODE:REORDER:NOROOT(1)
+ACMP_Handler
+        B ACMP_Handler
+
+        PUBWEAK BTIMR0_Handler
+        SECTION .text:CODE:REORDER:NOROOT(1)
+BTIMR0_Handler
+        B BTIMR0_Handler
+
         PUBWEAK BTIMR1_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
 BTIMR1_Handler
         B BTIMR1_Handler
 
-        PUBWEAK GPIOA9_GPIOC6_Handler
+        PUBWEAK BTIMR2_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-GPIOA9_GPIOC6_Handler
-        B GPIOA9_GPIOC6_Handler
+BTIMR2_Handler
+        B BTIMR2_Handler
 
-        PUBWEAK GPIOA6_GPIOC7_Handler
+        PUBWEAK BTIMR3_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-GPIOA6_GPIOC7_Handler
-        B GPIOA6_GPIOC7_Handler
+BTIMR3_Handler
+        B BTIMR3_Handler
 
-        PUBWEAK GPIOA7_GPIOC8_Handler
+        PUBWEAK GPIOA_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-GPIOA7_GPIOC8_Handler
-        B GPIOA7_GPIOC8_Handler
+GPIOA_Handler
+        B GPIOA_Handler
 
-        PUBWEAK GPIOA8_GPIOC9_Handler
+        PUBWEAK GPIOB_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-GPIOA8_GPIOC9_Handler
-        B GPIOA8_GPIOC9_Handler
+GPIOB_Handler
+        B GPIOB_Handler
 
-        PUBWEAK GPIOA10_GPIOC10_Handler
+        PUBWEAK GPIOM_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-GPIOA10_GPIOC10_Handler
-        B GPIOA10_GPIOC10_Handler
+GPIOM_Handler
+        B GPIOM_Handler
 
-        PUBWEAK GPIOA13_GPIOC12_Handler
+        PUBWEAK GPIOA0_GPIOM0_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-GPIOA13_GPIOC12_Handler
-        B GPIOA13_GPIOC12_Handler
+GPIOA0_GPIOM0_Handler
+        B GPIOA0_GPIOM0_Handler
 
-        PUBWEAK GPIOA12_GPIOC13_Handler
+        PUBWEAK GPIOA1_GPIOM1_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-GPIOA12_GPIOC13_Handler
-        B GPIOA12_GPIOC13_Handler
+GPIOA1_GPIOM1_Handler
+        B GPIOA1_GPIOM1_Handler
 
-        PUBWEAK GPIOA11_GPIOC14_Handler
+        PUBWEAK GPIOA2_GPIOM2_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-GPIOA11_GPIOC14_Handler
-        B GPIOA11_GPIOC14_Handler
+GPIOA2_GPIOM2_Handler
+        B GPIOA2_GPIOM2_Handler
 
-        PUBWEAK XTALSTOPDET_GPIOC0_Handler
+        PUBWEAK GPIOA3_GPIOM3_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-XTALSTOPDET_GPIOC0_Handler
-        B XTALSTOPDET_GPIOC0_Handler
+GPIOA3_GPIOM3_Handler
+        B GPIOA3_GPIOM3_Handler
 
-        PUBWEAK BTIMR2_GPIOB12_Handler
+        PUBWEAK GPIOB0_GPIOA8_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-BTIMR2_GPIOB12_Handler
-        B BTIMR2_GPIOB12_Handler
+GPIOB0_GPIOA8_Handler
+        B GPIOB0_GPIOA8_Handler
 
-        PUBWEAK PWM1_GPIOA1_Handler
+        PUBWEAK GPIOB1_GPIOA9_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-PWM1_GPIOA1_Handler
-        B PWM1_GPIOA1_Handler
+GPIOB1_GPIOA9_Handler
+        B GPIOB1_GPIOA9_Handler
 
-        PUBWEAK PWM2_UART4_Handler
+        PUBWEAK GPIOB2_GPIOA10_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-PWM2_UART4_Handler
-        B PWM2_UART4_Handler
+GPIOB2_GPIOA10_Handler
+        B GPIOB2_GPIOA10_Handler
 
-        PUBWEAK BOD_PWMHALT_Handler
+        PUBWEAK GPIOB3_GPIOA11_SPI0_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-BOD_PWMHALT_Handler
-        B BOD_PWMHALT_Handler
+GPIOB3_GPIOA11_SPI0_Handler
+        B GPIOB3_GPIOA11_SPI0_Handler
 
-        PUBWEAK PWM3_GPIOB_ACMP_Handler
+        PUBWEAK GPIOB4_GPIOB10_QEI_Handler
         SECTION .text:CODE:REORDER:NOROOT(1)
-PWM3_GPIOB_ACMP_Handler
-        B PWM3_GPIOB_ACMP_Handler
-
-        PUBWEAK SPI1_HALL_GPIOD_Handler
-        SECTION .text:CODE:REORDER:NOROOT(1)
-SPI1_HALL_GPIOD_Handler
-        B SPI1_HALL_GPIOD_Handler
-
-        PUBWEAK BTIMR3_RTC_Handler
-        SECTION .text:CODE:REORDER:NOROOT(1)
-BTIMR3_RTC_Handler
-        B BTIMR3_RTC_Handler
+GPIOB4_GPIOB10_QEI_Handler
+        B GPIOB4_GPIOB10_QEI_Handler
 
         END

@@ -168,12 +168,14 @@ void SystemInit(void)
 	__NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
 	FMC->CACHE = (1 << FMC_CACHE_CEN_Pos) | (1 << FMC_CACHE_CPEN_Pos);
 	
-	PORTA->PULLD = 0xFFFF;	// 下拉电阻：0 开启   1 关闭
-	PORTB->PULLD = 0xFFFF;
-	PORTM->PULLD = 0xFFFF;
-	
-//	PORTB->PULLD &= ~(1 << PIN11);
+	PORTB->PULLD &= ~((1 << PIN10) | (1 << PIN11));
 	PORTB->PULLU &= ~((1 << PIN12) | (1 << PIN14));
+	
+	SYS->PGACR &= ~SYS_PGACR_VRTRIM_Msk;	//PGA正输入端参考电压校准
+	SYS->PGACR |= ((SYS->CHIPID[3] & 0x000F) << SYS_PGACR_VRTRIM_Pos);
+
+	SYS->PGACR &= ~SYS_PGACR_DATRIM_Msk;	//用于产生ACMP N输入端电压的DAC的参考电压校准
+	SYS->PGACR |= (((SYS->CHIPID[3] >> 16) & 0x000F) << SYS_PGACR_DATRIM_Pos);
 }
 
 void switchTo12MHz(void)
@@ -205,7 +207,7 @@ void switchToXTAL(uint32_t div8)
 	switchTo12MHz();
 	
 	PORTB->PULLU &= ~((1 << PIN11) | (1 << PIN12));
-	PORTB->PULLD |=  ((1 << PIN11) | (1 << PIN12));		// 下拉电阻：0 开启   1 关闭
+	PORTB->PULLD &= ~((1 << PIN11) | (1 << PIN12));
 	PORT_Init(PORTB, PIN11, PORTB_PIN11_XTAL_IN,  0);
 	PORT_Init(PORTB, PIN12, PORTB_PIN12_XTAL_OUT, 0);
 	SYS->XTALCR |= (1 << SYS_XTALCR_ON_Pos) | (7 << SYS_XTALCR_DRV_Pos) | (1 << SYS_XTALCR_DET_Pos);
@@ -270,7 +272,7 @@ void PLLInit(void)
 	else if(SYS_PLL_SRC == SYS_CLK_XTAL)
 	{
 		PORTB->PULLU &= ~((1 << PIN11) | (1 << PIN12));
-		PORTB->PULLD |=  ((1 << PIN11) | (1 << PIN12));		// 下拉电阻：0 开启   1 关闭
+		PORTB->PULLD &= ~((1 << PIN11) | (1 << PIN12));
 		PORT_Init(PORTB, PIN11, PORTB_PIN11_XTAL_IN,  0);
 		PORT_Init(PORTB, PIN12, PORTB_PIN12_XTAL_OUT, 0);
 		SYS->XTALCR |= (1 << SYS_XTALCR_ON_Pos) | (7 << SYS_XTALCR_DRV_Pos) | (1 << SYS_XTALCR_DET_Pos);

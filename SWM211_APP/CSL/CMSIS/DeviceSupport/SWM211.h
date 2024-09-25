@@ -1,5 +1,5 @@
-#ifndef __SWM201_H__
-#define __SWM201_H__
+#ifndef __SWM211_H__
+#define __SWM211_H__
 
 /*
  * ==========================================================================
@@ -65,6 +65,7 @@ typedef enum IRQn
 #endif
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "core_cm0.h"				   /* Cortex-M0 processor and core peripherals		     */
 #include "system_SWM211.h"
 
@@ -274,6 +275,8 @@ typedef struct {
 #define SYS_PRSTR0_PWM_Msk			(0x01 <<SYS_PRSTR0_PWM_Pos)
 #define SYS_PRSTR0_SPI0_Pos			13
 #define SYS_PRSTR0_SPI0_Msk			(0x01 <<SYS_PRSTR0_SPI0_Pos)
+#define SYS_PRSTR0_SPI1_Pos			14
+#define SYS_PRSTR0_SPI1_Msk			(0x01 <<SYS_PRSTR0_SPI1_Pos)
 #define SYS_PRSTR0_I2C0_Pos			15
 #define SYS_PRSTR0_I2C0_Msk			(0x01 <<SYS_PRSTR0_I2C0_Pos)
 #define SYS_PRSTR0_CORDIC_Pos		20
@@ -284,6 +287,8 @@ typedef struct {
 #define SYS_PRSTR0_ANAC_Msk			(0x01 <<SYS_PRSTR0_ANAC_Pos)
 #define SYS_PRSTR0_ADC0_Pos			26
 #define SYS_PRSTR0_ADC0_Msk			(0x01 <<SYS_PRSTR0_ADC0_Pos)
+#define SYS_PRSTR0_CAN0_Pos			28
+#define SYS_PRSTR0_CAN0_Msk			(0x01 <<SYS_PRSTR0_CAN0_Pos)
 
 #define SYS_PRSTR1_IOFILT_Pos		20
 #define SYS_PRSTR1_IOFILT_Msk		(0x01 <<SYS_PRSTR1_IOFILT_Pos)
@@ -299,9 +304,9 @@ typedef struct {
 
 #define SYS_BODCR_IE_Pos		    1		//Interrupt Enable
 #define SYS_BODCR_IE_Msk		    (0x01 << SYS_BODCR_IE_Pos)
-#define SYS_BODCR_INTLVL_Pos		4		//BOD中断触发电平，0 1.9v   1 2.1v   2 2.3v   3 2.5v   4 2.7v   5 3.5v   6 4.1v
+#define SYS_BODCR_INTLVL_Pos		4		//BOD中断触发电平，0 1.9v   1 2.1v   2 2.3v   3 2.5v   4 2.7v
 #define SYS_BODCR_INTLVL_Msk		(0x07 << SYS_BODCR_INTLVL_Pos)
-#define SYS_BODCR_RSTLVL_Pos		7		//BOD复位电平，0 1.7v   1 1.9v   2 2.1v   3 2.7v   4 3.5v
+#define SYS_BODCR_RSTLVL_Pos		7		//BOD复位电平，0 1.7v   1 1.9v   2 2.1v   3 2.3v   4 2.5v
 #define SYS_BODCR_RSTLVL_Msk		(0x07 << SYS_BODCR_RSTLVL_Pos)
 
 #define SYS_BODSR_IF_Pos			0		//中断标志，写1清零
@@ -408,7 +413,7 @@ typedef struct {
 #define SYS_ACMPCR_CMP2ON_Msk		(0x01 << SYS_ACMPCR_CMP2ON_Pos)
 #define SYS_ACMPCR_CMP3ON_Pos		3
 #define SYS_ACMPCR_CMP3ON_Msk		(0x01 << SYS_ACMPCR_CMP3ON_Pos)
-#define SYS_ACMPCR_CMP0HYS_Pos		8		//ACMP0 迟滞电压，0 0mV   1 10mV   2 30mV   3 50mV
+#define SYS_ACMPCR_CMP0HYS_Pos		8		//ACMP0 迟滞开启，1 开启迟滞   0 关闭迟滞
 #define SYS_ACMPCR_CMP0HYS_Msk		(0x03 << SYS_ACMPCR_CMP0HYS_Pos)
 #define SYS_ACMPCR_CMP1HYS_Pos		10
 #define SYS_ACMPCR_CMP1HYS_Msk		(0x03 << SYS_ACMPCR_CMP1HYS_Pos)
@@ -1328,6 +1333,8 @@ typedef struct {
 #define ADC_CTRL2_ADJH_Msk			(0xFF << ADC_CTRL2_ADJH_Pos)
 #define ADC_CTRL2_ADJL_Pos			16
 #define ADC_CTRL2_ADJL_Msk			(0x0F << ADC_CTRL2_ADJL_Pos)
+#define ADC_CTRL2_EREFSEL_Pos		28		//External Reference Select, 0 Vrefp pin   1 VDD
+#define ADC_CTRL2_EREFSEL_Msk		(0x01 << ADC_CTRL2_EREFSEL_Pos)
 
 #define ADC_CTRL3_REFSEL_Pos		1		//Reference Select, 0 内部REFP   3 外部REFP
 #define ADC_CTRL3_REFSEL_Msk		(0x03 << ADC_CTRL3_REFSEL_Pos)
@@ -1338,8 +1345,6 @@ typedef struct {
 #define ADC_CTRL3_CLKDIV1_Pos		29
 #define ADC_CTRL3_CLKDIV1_Msk		(0x03 << ADC_CTRL3_CLKDIV1_Pos)
 
-#define ADC_CTRL4_EREFSEL_Pos		2		//External Reference Select, 0 Vrefp pin   1 VDD
-#define ADC_CTRL4_EREFSEL_Msk		(0x01 << ADC_CTRL4_EREFSEL_Pos)
 #define ADC_CTRL4_CLKDIV0_Pos		3
 #define ADC_CTRL4_CLKDIV0_Msk		(0x03 << ADC_CTRL4_CLKDIV0_Pos)
 
@@ -2433,4 +2438,52 @@ typedef struct {
 #include "SWM2X1_iofilt.h"
 
 
-#endif //__SWM201_H__
+
+#ifdef  SW_LOG_RTT
+#define log_printf(...)	 	SEGGER_RTT_printf(0, __VA_ARGS__)
+#else
+#define log_printf(...)	 	printf(__VA_ARGS__)
+#endif
+
+
+#ifndef SW_LOG_LEVEL
+#define SW_LOG_LEVEL        0
+#endif
+
+#if (SW_LOG_LEVEL > 0)
+#define SW_LOG_ERR(...)    	{						 \
+							log_printf("ERROR: ");   \
+							log_printf(__VA_ARGS__); \
+							log_printf("\n");		 \
+							}
+
+#if (SW_LOG_LEVEL > 1)
+#define SW_LOG_WARN(...) 	{						 \
+							log_printf("WARN : ");   \
+							log_printf(__VA_ARGS__); \
+							log_printf("\n");		 \
+							}
+
+#if (SW_LOG_LEVEL > 2)
+#define SW_LOG_INFO(...)   	{						 \
+							log_printf("INFO : ");   \
+							log_printf(__VA_ARGS__); \
+							log_printf("\n");		 \
+							}
+#else
+#define SW_LOG_INFO(...)
+#endif
+
+#else
+#define SW_LOG_WARN(...)
+#define SW_LOG_INFO(...)
+#endif
+
+#else
+#define SW_LOG_ERR(...)
+#define SW_LOG_WARN(...)
+#define SW_LOG_INFO(...)
+#endif
+
+
+#endif //__SWM211_H__

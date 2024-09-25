@@ -5,8 +5,6 @@ void Flash_remap(uint32_t addr);
 
 int main(void)
 {
- 	uint32_t i;
-	
 	Flash_remap(0x4000);
 	
 	SystemInit();
@@ -23,7 +21,7 @@ int main(void)
  	{
 		printf("Running in App\r\n");
 		
-		for(i = 0; i < SystemCoreClock/4; i++) __NOP();
+		for(int i = 0; i < SystemCoreClock/4; i++) __NOP();
 		
 		
 		if(GPIO_GetBit(GPIOA, PIN2) == 0)	// 检测到按键按下，跳到UserBoot

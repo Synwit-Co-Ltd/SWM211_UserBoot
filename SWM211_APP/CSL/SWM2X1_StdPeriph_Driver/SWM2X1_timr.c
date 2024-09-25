@@ -45,20 +45,16 @@ void TIMR_Init(TIMR_TypeDef * TIMRx, uint32_t mode, uint32_t prediv, uint32_t pe
 #endif
 	{
 		SYS->CLKEN0 |= (0x01 << SYS_CLKEN0_TIMR_Pos);
-		
-		TIMR_Stop(TIMRx);	//一些关键寄存器只能在定时器停止时设置
-		
-		TIMRx->CR &= ~(TIMR_CR_MODE_Msk | TIMR_CR_CLKSRC_Msk);
-		TIMRx->CR |= (mode << TIMR_CR_CLKSRC_Pos);
 	}
 	else if((TIMRx == BTIMR0) || (TIMRx == BTIMR1) || (TIMRx == BTIMR2) || (TIMRx == BTIMR3))
 	{
 		SYS->CLKEN1 |= (0x01 << SYS_CLKEN1_BTIMR_Pos);
-		
-		TIMR_Stop(TIMRx);	//一些关键寄存器只能在定时器停止时设置
-		
-		if(mode == TIMR_MODE_OC) TIMRx->CR = 1;
 	}
+	
+	TIMR_Stop(TIMRx);	//一些关键寄存器只能在定时器停止时设置
+	
+	TIMRx->CR &= ~(TIMR_CR_MODE_Msk | TIMR_CR_CLKSRC_Msk);
+	TIMRx->CR |= (mode << TIMR_CR_CLKSRC_Pos);
 
 	TIMRx->PREDIV = prediv - 1;
 	
@@ -78,7 +74,7 @@ void TIMR_Init(TIMR_TypeDef * TIMRx, uint32_t mode, uint32_t prediv, uint32_t pe
 		if(int_en) NVIC_EnableIRQ(TIMR1_IRQn);
 		break;
 	
-#ifdef CHIP_SWM211
+#if defined(CHIP_SWM211)
 	case ((uint32_t)TIMR2):
 		if(int_en) NVIC_EnableIRQ(GPIOB0_GPIOA8_TIMR2_IRQn);
 		break;
@@ -123,7 +119,7 @@ void TIMR_Start(TIMR_TypeDef * TIMRx)
 		TIMRG->EN |= (1 << TIMRG_EN_TIMR1_Pos);
 		break;
 	
-#ifdef CHIP_SWM211
+#if defined(CHIP_SWM211)
 	case ((uint32_t)TIMR2):
 		TIMRG->EN |= (1 << TIMRG_EN_TIMR2_Pos);
 		break;
@@ -168,7 +164,7 @@ void TIMR_Stop(TIMR_TypeDef * TIMRx)
 		TIMRG->EN &= ~(1 << TIMRG_EN_TIMR1_Pos);
 		break;
 	
-#ifdef CHIP_SWM211
+#if defined(CHIP_SWM211)
 	case ((uint32_t)TIMR2):
 		TIMRG->EN &= ~(1 << TIMRG_EN_TIMR2_Pos);
 		break;
@@ -296,7 +292,7 @@ uint32_t TIMR_INTStat(TIMR_TypeDef * TIMRx)
 * 功能说明:	输出比较功能初始化
 * 输    入: TIMR_TypeDef * TIMRx	指定要被设置的定时器，可取值包括：
 * 									SWM201：TIMR0、TIMR1
-* 									SWM211：TIMR0、TIMR1、TIMR2
+* 									SWM211：TIMR0、TIMR1、TIMR2、BTIMR0、BTIMR1、BTIMR2、BTIMR3
 *			uint32_t match			当计数器的值递减到match时引脚输出电平翻转
 *			uint32_t match_int_en	当计数器的值递减到match时是否产生中断
 *			uint32_t init_lvl		初始输出电平，Timer停止时、或模式不是“输出比较”时的输出电平
@@ -328,9 +324,25 @@ void TIMR_OC_Init(TIMR_TypeDef * TIMRx, uint32_t match, uint32_t match_int_en, u
 		if(match_int_en) NVIC_EnableIRQ(TIMR1_IRQn);
 		break;
 
-#ifdef CHIP_SWM211
+#if defined(CHIP_SWM211)
 	case ((uint32_t)TIMR2):
 		if(match_int_en) NVIC_EnableIRQ(GPIOB0_GPIOA8_TIMR2_IRQn);
+		break;
+	
+	case ((uint32_t)BTIMR0):
+		if(match_int_en) NVIC_EnableIRQ(BTIMR0_IRQn);
+		break;
+	
+	case ((uint32_t)BTIMR1):
+		if(match_int_en) NVIC_EnableIRQ(BTIMR1_IRQn);
+		break;
+	
+	case ((uint32_t)BTIMR2):
+		if(match_int_en) NVIC_EnableIRQ(BTIMR2_IRQn);
+		break;
+	
+	case ((uint32_t)BTIMR3):
+		if(match_int_en) NVIC_EnableIRQ(BTIMR3_IRQn);
 		break;
 #endif
 	}
@@ -341,7 +353,7 @@ void TIMR_OC_Init(TIMR_TypeDef * TIMRx, uint32_t match, uint32_t match_int_en, u
 * 功能说明:	使能输出比较功能的波形输出
 * 输    入: TIMR_TypeDef * TIMRx	指定要被设置的定时器，可取值包括：
 * 									SWM201：TIMR0、TIMR1
-* 									SWM211：TIMR0、TIMR1、TIMR2
+* 									SWM211：TIMR0、TIMR1、TIMR2、BTIMR0、BTIMR1、BTIMR2、BTIMR3
 * 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
@@ -355,7 +367,7 @@ void TIMR_OC_OutputEn(TIMR_TypeDef * TIMRx)
 * 功能说明:	禁止输出比较功能的波形输出，且让输出比较功能引脚保持level电平
 * 输    入: TIMR_TypeDef * TIMRx	指定要被设置的定时器，可取值包括：
 * 									SWM201：TIMR0、TIMR1
-* 									SWM211：TIMR0、TIMR1、TIMR2
+* 									SWM211：TIMR0、TIMR1、TIMR2、BTIMR0、BTIMR1、BTIMR2、BTIMR3
 *			uint32_t level			禁止输出波形后在引脚上保持的电平
 * 输    出: 无
 * 注意事项: 无
@@ -373,7 +385,7 @@ void TIMR_OC_OutputDis(TIMR_TypeDef * TIMRx, uint32_t level)
 * 功能说明:	设置输出比较功能的比较值
 * 输    入: TIMR_TypeDef * TIMRx	指定要被设置的定时器，可取值包括：
 * 									SWM201：TIMR0、TIMR1
-* 									SWM211：TIMR0、TIMR1、TIMR2
+* 									SWM211：TIMR0、TIMR1、TIMR2、BTIMR0、BTIMR1、BTIMR2、BTIMR3
 *			uint32_t match			输出比较功能的比较值
 * 输    出: 无
 * 注意事项: 无
@@ -392,7 +404,7 @@ void TIMR_OC_SetMatch(TIMR_TypeDef * TIMRx, uint32_t match)
 * 功能说明:	获取输出比较功能的比较值
 * 输    入: TIMR_TypeDef * TIMRx	指定要被设置的定时器，可取值包括：
 * 									SWM201：TIMR0、TIMR1
-* 									SWM211：TIMR0、TIMR1、TIMR2
+* 									SWM211：TIMR0、TIMR1、TIMR2、BTIMR0、BTIMR1、BTIMR2、BTIMR3
 * 输    出: uint32_t				输出比较功能的比较值
 * 注意事项: 无
 ******************************************************************************************************************************************/
@@ -410,7 +422,7 @@ uint32_t TIMR_OC_GetMatch(TIMR_TypeDef * TIMRx)
 * 功能说明:	使能输出比较中断
 * 输    入: TIMR_TypeDef * TIMRx	指定要被设置的定时器，可取值包括：
 * 									SWM201：TIMR0、TIMR1
-* 									SWM211：TIMR0、TIMR1、TIMR2
+* 									SWM211：TIMR0、TIMR1、TIMR2、BTIMR0、BTIMR1、BTIMR2、BTIMR3
 * 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
@@ -424,7 +436,7 @@ void TIMR_OC_INTEn(TIMR_TypeDef * TIMRx)
 * 功能说明:	禁能输出比较中断
 * 输    入: TIMR_TypeDef * TIMRx	指定要被设置的定时器，可取值包括：
 * 									SWM201：TIMR0、TIMR1
-* 									SWM211：TIMR0、TIMR1、TIMR2
+* 									SWM211：TIMR0、TIMR1、TIMR2、BTIMR0、BTIMR1、BTIMR2、BTIMR3
 * 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
@@ -438,7 +450,7 @@ void TIMR_OC_INTDis(TIMR_TypeDef * TIMRx)
 * 功能说明:	清除输出比较中断标志
 * 输    入: TIMR_TypeDef * TIMRx	指定要被设置的定时器，可取值包括：
 * 									SWM201：TIMR0、TIMR1
-* 									SWM211：TIMR0、TIMR1、TIMR2
+* 									SWM211：TIMR0、TIMR1、TIMR2、BTIMR0、BTIMR1、BTIMR2、BTIMR3
 * 输    出: 无
 * 注意事项: 无
 ******************************************************************************************************************************************/
@@ -452,7 +464,7 @@ void TIMR_OC_INTClr(TIMR_TypeDef * TIMRx)
 * 功能说明:	获取输出比较中断状态
 * 输    入: TIMR_TypeDef * TIMRx	指定要被设置的定时器，可取值包括：
 * 									SWM201：TIMR0、TIMR1
-* 									SWM211：TIMR0、TIMR1、TIMR2
+* 									SWM211：TIMR0、TIMR1、TIMR2、BTIMR0、BTIMR1、BTIMR2、BTIMR3
 * 输    出: uint32_t 				0 输出比较match未发生   1 输出比较match发生
 * 注意事项: 无
 ******************************************************************************************************************************************/
@@ -490,7 +502,7 @@ void TIMR_IC_Init(TIMR_TypeDef * TIMRx, uint32_t captureH_int_en, uint32_t captu
 		if(captureH_int_en | captureL_int_en) NVIC_EnableIRQ(TIMR1_IRQn);
 		break;
 
-#ifdef CHIP_SWM211
+#if defined(CHIP_SWM211)
 	case ((uint32_t)TIMR2):
 		if(captureH_int_en | captureL_int_en) NVIC_EnableIRQ(GPIOB0_GPIOA8_TIMR2_IRQn);
 		break;

@@ -1,10 +1,10 @@
 /****************************************************************************************************************************************** 
-* ÎÄ¼þÃû³Æ:	SWM2X1_adc.c
-* ¹¦ÄÜËµÃ÷:	SWM2X1µ¥Æ¬»úµÄADCÊýÄ£×ª»»Æ÷¹¦ÄÜÇý¶¯¿â
-* ¼¼ÊõÖ§³Ö:	http://www.synwit.com.cn/e/tool/gbook/?bid=1
-* ×¢ÒâÊÂÏî:
-* °æ±¾ÈÕÆÚ: V1.0.0		2016Äê1ÔÂ30ÈÕ
-* Éý¼¶¼ÇÂ¼: 
+* æ–‡ä»¶åç§°:	SWM2X1_adc.c
+* åŠŸèƒ½è¯´æ˜Ž:	SWM2X1å•ç‰‡æœºçš„ADCæ•°æ¨¡è½¬æ¢å™¨åŠŸèƒ½é©±åŠ¨åº“
+* æŠ€æœ¯æ”¯æŒ:	http://www.synwit.com.cn/e/tool/gbook/?bid=1
+* æ³¨æ„äº‹é¡¹:
+* ç‰ˆæœ¬æ—¥æœŸ: V1.0.0		2016å¹´1æœˆ30æ—¥
+* å‡çº§è®°å½•: 
 *******************************************************************************************************************************************
 * @attention
 *
@@ -16,25 +16,41 @@
 *
 * COPYRIGHT 2012 Synwit Technology  
 *******************************************************************************************************************************************/
+#if defined(CHIP_SWM201) || defined(CHIP_SWM211)
+
 #include "SWM2X1.h"
 #include "SWM2X1_adc.h"
 
+static uint32_t VERSION_F = 0;	// æ˜¯å¦ä¸º F ç‰ˆèŠ¯ç‰‡
 
-static uint32_t ADC3V6 = 0;		// ÊÇ·ñÊ¹ÓÃÄÚ²¿3.6V»ù×¼
-static uint32_t ADC3V6_K, ADC3V6_Offset;
+static uint32_t VDD3V3 = 0;		// æ˜¯å¦èŠ¯ç‰‡ä½¿ç”¨3.3Vä¾›ç”µ
+static uint32_t ADC3V6 = 0;		// æ˜¯å¦ä½¿ç”¨å†…éƒ¨3.6VåŸºå‡†
+static uint32_t ADC_K, ADC_Offset;
 
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ: ADC_Init()
-* ¹¦ÄÜËµÃ÷:	ADCÄ£Êý×ª»»Æ÷³õÊ¼»¯
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬ÓÐÐ§Öµ°üÀ¨ADC0
-*			ADC_InitStructure * initStruct		°üº¬ADC¸÷Ïà¹Ø¶¨ÖµµÄ½á¹¹Ìå
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°: ADC_Init()
+* åŠŸèƒ½è¯´æ˜Ž:	ADCæ¨¡æ•°è½¬æ¢å™¨åˆå§‹åŒ–
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œæœ‰æ•ˆå€¼åŒ…æ‹¬ADC0
+*			ADC_InitStructure * initStruct		åŒ…å«ADCå„ç›¸å…³å®šå€¼çš„ç»“æž„ä½“
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_Init(ADC_TypeDef * ADCx, ADC_InitStructure * initStruct)
 {
 	uint8_t trig_src;
+	
+	if((SYS->CHIPID[0] >> 24) == 0xD3)
+		VERSION_F = 1;
+	
+#if defined(CHIP_SWM211)
+	if(VERSION_F && (initStruct->ref_src & 0x40))
+	{
+		initStruct->ref_src &= 0x3F;
+		
+		VDD3V3 = 1;
+	}
+#endif
 	
 	switch((uint32_t)ADCx)
 	{
@@ -43,35 +59,41 @@ void ADC_Init(ADC_TypeDef * ADCx, ADC_InitStructure * initStruct)
 		break;
 	}
 	
-	ADC_Close(ADCx);		//Ò»Ð©¹Ø¼ü¼Ä´æÆ÷Ö»ÄÜÔÚADC¹Ø±ÕÊ±ÉèÖÃ
+	ADC_Close(ADCx);		//ä¸€äº›å…³é”®å¯„å­˜å™¨åªèƒ½åœ¨ADCå…³é—­æ—¶è®¾ç½®
 	
 	SYS->CLKSEL &= ~SYS_CLKSEL_ADC_Msk;
 	SYS->CLKSEL |= ((initStruct->clk_src & 0xF) << SYS_CLKSEL_ADC_Pos);
 	
-	ADCx->CTRL3 &= ~(ADC_CTRL3_CLKDIV1_Msk | ADC_CTRL3_CLKDIV2_Msk);
-	ADCx->CTRL3 |= ((initStruct->clk_src >> 4) << ADC_CTRL3_CLKDIV1_Pos) |
-				   (initStruct->clk_div << ADC_CTRL3_CLKDIV2_Pos);
-
 #if defined(CHIP_SWM211)
 	ADCx->CTRL4 &= ~ADC_CTRL4_CLKDIV0_Msk;
-	ADCx->CTRL4 |= (2 << ADC_CTRL4_CLKDIV0_Pos);
+	ADCx->CTRL4 |= (((initStruct->clk_src >> 4) & 3) << ADC_CTRL4_CLKDIV0_Pos);
 #endif
+	
+	ADCx->CTRL3 &= ~(ADC_CTRL3_CLKDIV1_Msk | ADC_CTRL3_CLKDIV2_Msk);
+	ADCx->CTRL3 |= ((initStruct->clk_src >> 6) << ADC_CTRL3_CLKDIV1_Pos) |
+				   (initStruct->clk_div << ADC_CTRL3_CLKDIV2_Pos);
 	
 	ADCx->CTRL3 &= ~(ADC_CTRL3_REFSEL_Msk | ADC_CTRL3_IREFSEL_Msk);
 	ADCx->CTRL3 |= ((initStruct->ref_src >> 4) << ADC_CTRL3_REFSEL_Pos);
 	if((initStruct->ref_src >> 4) == 0)
 	{
 		ADC3V6 = 1;
+		ADC3V6 = ADC3V6;	// æ¶ˆé™¤ç¼–è¯‘è­¦å‘Š
 #if defined(CHIP_SWM201)
-		ADC3V6_Offset = SYS->CHIPID[3] & 0xFFFF;
-		ADC3V6_K = ((SYS->CHIPID[3] >> 16) + 1000) * 1.024;
+		ADC_Offset = SYS->CHIPID[3] & 0xFFFF;
+		ADC_K = ((SYS->CHIPID[3] >> 16) + 1000) * 1.024;
 #elif defined(CHIP_SWM211)
-		ADC3V6_Offset = (SYS->BACKUP[2] >> 4) & 0xFFFF;
-		ADC3V6_K = ((SYS->BACKUP[2] >> 4) >> 16);
+		ADC_Offset = (SYS->BACKUP[2] >> 4) & 0xFFFF;
+		ADC_K = ((SYS->BACKUP[2] >> 4) >> 16);
 		
-		ADC3V6 = ADC3V6;	// Ïû³ý±àÒë¾¯¸æ
-		ADCx->CALIBSET = (ADC3V6_K << ADC_CALIBSET_K_Pos) | (ADC3V6_Offset << ADC_CALIBSET_OFFSET_Pos);
-		ADCx->CALIBEN = (1 << ADC_CALIBEN_K_Pos) | (1 << ADC_CALIBEN_OFFSET_Pos);
+		if(VERSION_F)
+		{
+		}
+		else
+		{
+			ADCx->CALIBSET = (ADC_K << ADC_CALIBSET_K_Pos) | (ADC_Offset << ADC_CALIBSET_OFFSET_Pos);
+			ADCx->CALIBEN = (1 << ADC_CALIBEN_K_Pos) | (1 << ADC_CALIBEN_OFFSET_Pos);
+		}
 #endif
 		
 		ADCx->CTRL3 |= ((initStruct->ref_src & 0xF) << ADC_CTRL3_IREFSEL_Pos);
@@ -81,9 +103,34 @@ void ADC_Init(ADC_TypeDef * ADCx, ADC_InitStructure * initStruct)
 #if defined(CHIP_SWM201)
 		ADCx->CALIBSET = *((volatile uint32_t *) 0x40000098);
 		ADCx->CALIBEN = (1 << ADC_CALIBEN_K_Pos) | (1 << ADC_CALIBEN_OFFSET_Pos);
+#elif defined(CHIP_SWM211)
+		if(VERSION_F)
+		{
+			if(VDD3V3)	// èŠ¯ç‰‡ 3.3V ä¾›ç”µ
+			{
+				ADC_Offset = SYS->CHIPID[0] & 0xFFF;
+				ADC_K = (SYS->CHIPID[0] >> 12) & 0xFFF;
+			}
+			else		// èŠ¯ç‰‡ 5V ä¾›ç”µ
+			{
+				ADC_Offset = SYS->BACKUP[1] & 0xFFFF;
+				ADC_K = SYS->BACKUP[1] >> 16;
+			}
+		}
+		else
+		{
+			ADCx->CALIBSET = SYS->BACKUP[1];
+			ADCx->CALIBEN = (1 << ADC_CALIBEN_K_Pos) | (1 << ADC_CALIBEN_OFFSET_Pos);
+		}
 #endif
+
+#if defined(CHIP_SWM201)
 		ADCx->CTRL4 &= ~ADC_CTRL4_EREFSEL_Msk;
 		ADCx->CTRL4 |= ((initStruct->ref_src & 0xF) << ADC_CTRL4_EREFSEL_Pos);
+#else
+		ADCx->CTRL2 &= ~ADC_CTRL2_EREFSEL_Msk;
+		ADCx->CTRL2 |= ((initStruct->ref_src & 0xF) << ADC_CTRL2_EREFSEL_Pos);
+#endif
 	}
 	
 	if(initStruct->trig_src & 0x1000)
@@ -113,10 +160,10 @@ void ADC_Init(ADC_TypeDef * ADCx, ADC_InitStructure * initStruct)
 				  (initStruct->Continue << ADC_CTRL_CONT_Pos);
 	
 	ADCx->CTRL2 &= ~(ADC_CTRL2_ADJH_Msk | ADC_CTRL2_ADJL_Msk);
-	ADCx->CTRL2 |= (0 << ADC_CTRL2_ADJH_Pos) | (15 << ADC_CTRL2_ADJL_Pos);
+	ADCx->CTRL2 |= (0x00 << ADC_CTRL2_ADJH_Pos) | (15 << ADC_CTRL2_ADJL_Pos);
 	
 	ADCx->IE = 0;
-	ADCx->IF = 0x7FFFF;		//Çå³ýÖÐ¶Ï±êÖ¾
+	ADCx->IF = 0x7FFFF;		//æ¸…é™¤ä¸­æ–­æ ‡å¿—
 	
 	ADCx->IE |= (((initStruct->EOC_IEn & ADC_CH0)  ? 1 : 0) << ADC_IE_CH0EOC_Pos)  |
 				(((initStruct->EOC_IEn & ADC_CH1)  ? 1 : 0) << ADC_IE_CH1EOC_Pos)  |
@@ -143,6 +190,18 @@ void ADC_Init(ADC_TypeDef * ADCx, ADC_InitStructure * initStruct)
 				(((initStruct->OVF_IEn & ADC_CH10) ? 1 : 0) << ADC_IE_CH10OVF_Pos) |
 				(((initStruct->OVF_IEn & ADC_CH11) ? 1 : 0) << ADC_IE_CH11OVF_Pos);
 	
+#if defined(CHIP_SWM211)
+	if(VERSION_F)
+		ADC_K = ADC_K * 1.024;
+	
+	if(VERSION_F && VDD3V3)
+	{
+		ADCx->CTRL3 &= ~(ADC_CTRL3_REFSEL_Msk | ADC_CTRL3_IREFSEL_Msk);
+		ADCx->CTRL3 |=  (((1 << 1) | 0) << ADC_CTRL3_REFSEL_Pos) |
+						(7 << ADC_CTRL3_IREFSEL_Pos);
+	}
+#endif
+
 	switch((uint32_t)ADCx)
 	{
 	case ((uint32_t)ADC0):		
@@ -152,11 +211,11 @@ void ADC_Init(ADC_TypeDef * ADCx, ADC_InitStructure * initStruct)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_Open()
-* ¹¦ÄÜËµÃ÷:	ADC¿ªÆô£¬¿ÉÒÔÈí¼þÆô¶¯¡¢»òÓ²¼þ´¥·¢ADC×ª»»
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_Open()
+* åŠŸèƒ½è¯´æ˜Ž:	ADCå¼€å¯ï¼Œå¯ä»¥è½¯ä»¶å¯åŠ¨ã€æˆ–ç¡¬ä»¶è§¦å‘ADCè½¬æ¢
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_Open(ADC_TypeDef * ADCx)
 {
@@ -164,11 +223,11 @@ void ADC_Open(ADC_TypeDef * ADCx)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_Close()
-* ¹¦ÄÜËµÃ÷:	ADC¹Ø±Õ£¬ÎÞ·¨Èí¼þÆô¶¯¡¢»òÓ²¼þ´¥·¢ADC×ª»»
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_Close()
+* åŠŸèƒ½è¯´æ˜Ž:	ADCå…³é—­ï¼Œæ— æ³•è½¯ä»¶å¯åŠ¨ã€æˆ–ç¡¬ä»¶è§¦å‘ADCè½¬æ¢
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_Close(ADC_TypeDef * ADCx)
 {
@@ -176,11 +235,11 @@ void ADC_Close(ADC_TypeDef * ADCx)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_Start()
-* ¹¦ÄÜËµÃ÷:	Èí¼þ´¥·¢Ä£Ê½ÏÂÆô¶¯ADC×ª»»
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_Start()
+* åŠŸèƒ½è¯´æ˜Ž:	è½¯ä»¶è§¦å‘æ¨¡å¼ä¸‹å¯åŠ¨ADCè½¬æ¢
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_Start(ADC_TypeDef * ADCx)
 {
@@ -200,11 +259,11 @@ void ADC_Start(ADC_TypeDef * ADCx)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_Stop()
-* ¹¦ÄÜËµÃ÷:	Èí¼þ´¥·¢Ä£Ê½ÏÂÍ£Ö¹ADC×ª»»
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_Stop()
+* åŠŸèƒ½è¯´æ˜Ž:	è½¯ä»¶è§¦å‘æ¨¡å¼ä¸‹åœæ­¢ADCè½¬æ¢
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_Stop(ADC_TypeDef * ADCx)
 {									 
@@ -235,12 +294,12 @@ static uint32_t chn2idx(uint32_t chn)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_Read()
-* ¹¦ÄÜËµÃ÷:	´ÓÖ¸¶¨Í¨µÀ¶ÁÈ¡×ª»»½á¹û
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chn			Òª¶ÁÈ¡×ª»»½á¹ûµÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11
-* Êä    ³ö: uint32_t				¶ÁÈ¡µ½µÄ×ª»»½á¹û
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_Read()
+* åŠŸèƒ½è¯´æ˜Ž:	ä»ŽæŒ‡å®šé€šé“è¯»å–è½¬æ¢ç»“æžœ
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chn			è¦è¯»å–è½¬æ¢ç»“æžœçš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11
+* è¾“    å‡º: uint32_t				è¯»å–åˆ°çš„è½¬æ¢ç»“æžœ
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 uint32_t ADC_Read(ADC_TypeDef * ADCx, uint32_t chn)
 {
@@ -249,18 +308,34 @@ uint32_t ADC_Read(ADC_TypeDef * ADCx, uint32_t chn)
 	
 	dat = ADCx->CH[idx].DATA & ADC_DATA_VAL_Msk;
 	
-	ADCx->CH[idx].STAT = 0x01;		//Çå³ýEOC±êÖ¾
+	ADCx->CH[idx].STAT = 0x01;		//æ¸…é™¤EOCæ ‡å¿—
 	
-#if defined(CHIP_SWM201)	// SWM211µÄ3.6V»ù×¼Ò²ÓÃÓ²¼þÐ£×¼
-	if(ADC3V6)				// Ê¹ÓÃÍâ²¿3.6V»ù×¼£¬Ã»ÓÐÓ²¼þÐ£×¼£¬Ö»ÄÜÈí¼þÐ£×¼
+#if defined(CHIP_SWM201)	// SWM211çš„3.6VåŸºå‡†ä¹Ÿç”¨ç¡¬ä»¶æ ¡å‡†
+	if(ADC3V6)				// ä½¿ç”¨å¤–éƒ¨3.6VåŸºå‡†ï¼Œæ²¡æœ‰ç¡¬ä»¶æ ¡å‡†ï¼Œåªèƒ½è½¯ä»¶æ ¡å‡†
 	{
-		if(dat < ADC3V6_Offset)
+		if(dat < ADC_Offset)
 		{
 			dat = 0;
 		}
 		else
 		{
-			dat = ((dat - ADC3V6_Offset) * ADC3V6_K) >> 10;
+			dat = ((dat - ADC_Offset) * ADC_K) >> 10;
+			if(dat > 4095)
+				dat = 4095;
+		}
+	}
+#endif
+
+#if defined(CHIP_SWM211)
+	if(VERSION_F)
+	{
+		if(dat < ADC_Offset)
+		{
+			dat = 0;
+		}
+		else
+		{
+			dat = ((dat - ADC_Offset) * ADC_K) >> 10;
 			if(dat > 4095)
 				dat = 4095;
 		}
@@ -271,12 +346,12 @@ uint32_t ADC_Read(ADC_TypeDef * ADCx, uint32_t chn)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_IsEOC()
-* ¹¦ÄÜËµÃ÷:	Ö¸¶¨Í¨µÀÊÇ·ñEnd Of Conversion
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chn			Òª²éÑ¯×´Ì¬µÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11
-* Êä    ³ö: uint32_t				1 ¸ÃÍ¨µÀÍê³ÉÁË×ª»»    0 ¸ÃÍ¨µÀÎ´Íê³É×ª»»
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_IsEOC()
+* åŠŸèƒ½è¯´æ˜Ž:	æŒ‡å®šé€šé“æ˜¯å¦End Of Conversion
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chn			è¦æŸ¥è¯¢çŠ¶æ€çš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11
+* è¾“    å‡º: uint32_t				1 è¯¥é€šé“å®Œæˆäº†è½¬æ¢    0 è¯¥é€šé“æœªå®Œæˆè½¬æ¢
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 uint32_t ADC_IsEOC(ADC_TypeDef * ADCx, uint32_t chn)
 {
@@ -286,12 +361,12 @@ uint32_t ADC_IsEOC(ADC_TypeDef * ADCx, uint32_t chn)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_ChnSelect()
-* ¹¦ÄÜËµÃ÷:	ADCÍ¨µÀÑ¡Í¨£¬Ä£Êý×ª»»»áÔÚÑ¡Í¨µÄÍ¨µÀÉÏÒÀ´Î²ÉÑù×ª»»
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chns			ÒªÑ¡Í¨µÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11¼°Æä×éºÏ£¨¼´¡°°´Î»»ò¡±ÔËËã£©
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_ChnSelect()
+* åŠŸèƒ½è¯´æ˜Ž:	ADCé€šé“é€‰é€šï¼Œæ¨¡æ•°è½¬æ¢ä¼šåœ¨é€‰é€šçš„é€šé“ä¸Šä¾æ¬¡é‡‡æ ·è½¬æ¢
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chns			è¦é€‰é€šçš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11åŠå…¶ç»„åˆï¼ˆå³â€œæŒ‰ä½æˆ–â€è¿ç®—ï¼‰
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_ChnSelect(ADC_TypeDef * ADCx, uint32_t chns)
 {
@@ -302,12 +377,12 @@ void ADC_ChnSelect(ADC_TypeDef * ADCx, uint32_t chns)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_IntEOCEn()
-* ¹¦ÄÜËµÃ÷:	×ª»»Íê³ÉÖÐ¶ÏÊ¹ÄÜ
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chn			ÒªÉèÖÃµÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_IntEOCEn()
+* åŠŸèƒ½è¯´æ˜Ž:	è½¬æ¢å®Œæˆä¸­æ–­ä½¿èƒ½
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chn			è¦è®¾ç½®çš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_IntEOCEn(ADC_TypeDef * ADCx, uint32_t chn)
 {
@@ -317,12 +392,12 @@ void ADC_IntEOCEn(ADC_TypeDef * ADCx, uint32_t chn)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_IntEOCDis()
-* ¹¦ÄÜËµÃ÷:	×ª»»Íê³ÉÖÐ¶Ï½ûÖ¹
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chn			ÒªÉèÖÃµÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_IntEOCDis()
+* åŠŸèƒ½è¯´æ˜Ž:	è½¬æ¢å®Œæˆä¸­æ–­ç¦æ­¢
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chn			è¦è®¾ç½®çš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_IntEOCDis(ADC_TypeDef * ADCx, uint32_t chn)
 {
@@ -332,12 +407,12 @@ void ADC_IntEOCDis(ADC_TypeDef * ADCx, uint32_t chn)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_IntEOCClr()
-* ¹¦ÄÜËµÃ÷:	×ª»»Íê³ÉÖÐ¶Ï±êÖ¾Çå³ý
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chn			ÒªÉèÖÃµÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_IntEOCClr()
+* åŠŸèƒ½è¯´æ˜Ž:	è½¬æ¢å®Œæˆä¸­æ–­æ ‡å¿—æ¸…é™¤
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chn			è¦è®¾ç½®çš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_IntEOCClr(ADC_TypeDef * ADCx, uint32_t chn)
 {
@@ -347,12 +422,12 @@ void ADC_IntEOCClr(ADC_TypeDef * ADCx, uint32_t chn)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_IntEOCStat()
-* ¹¦ÄÜËµÃ÷:	×ª»»Íê³ÉÖÐ¶Ï×´Ì¬
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chn			Òª²éÑ¯µÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11
-* Êä    ³ö: uint32_t				1 ¸ÃÍ¨µÀÍê³ÉÁË×ª»»    0 ¸ÃÍ¨µÀÎ´Íê³É×ª»»
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_IntEOCStat()
+* åŠŸèƒ½è¯´æ˜Ž:	è½¬æ¢å®Œæˆä¸­æ–­çŠ¶æ€
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chn			è¦æŸ¥è¯¢çš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11
+* è¾“    å‡º: uint32_t				1 è¯¥é€šé“å®Œæˆäº†è½¬æ¢    0 è¯¥é€šé“æœªå®Œæˆè½¬æ¢
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 uint32_t ADC_IntEOCStat(ADC_TypeDef * ADCx, uint32_t chn)
 {
@@ -362,12 +437,12 @@ uint32_t ADC_IntEOCStat(ADC_TypeDef * ADCx, uint32_t chn)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_IntOVFEn()
-* ¹¦ÄÜËµÃ÷:	Êý¾ÝÒç³öÖÐ¶ÏÊ¹ÄÜ
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chn			ÒªÉèÖÃµÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_IntOVFEn()
+* åŠŸèƒ½è¯´æ˜Ž:	æ•°æ®æº¢å‡ºä¸­æ–­ä½¿èƒ½
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chn			è¦è®¾ç½®çš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_IntOVFEn(ADC_TypeDef * ADCx, uint32_t chn)
 {
@@ -377,12 +452,12 @@ void ADC_IntOVFEn(ADC_TypeDef * ADCx, uint32_t chn)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_IntOVFDis()
-* ¹¦ÄÜËµÃ÷:	Êý¾ÝÒç³öÖÐ¶Ï½ûÖ¹
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chn			ÒªÉèÖÃµÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_IntOVFDis()
+* åŠŸèƒ½è¯´æ˜Ž:	æ•°æ®æº¢å‡ºä¸­æ–­ç¦æ­¢
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chn			è¦è®¾ç½®çš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_IntOVFDis(ADC_TypeDef * ADCx, uint32_t chn)
 {
@@ -392,12 +467,12 @@ void ADC_IntOVFDis(ADC_TypeDef * ADCx, uint32_t chn)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_IntOVFClr()
-* ¹¦ÄÜËµÃ÷:	Êý¾ÝÒç³öÖÐ¶Ï±êÖ¾Çå³ý
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chn			ÒªÉèÖÃµÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11
-* Êä    ³ö: ÎÞ
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_IntOVFClr()
+* åŠŸèƒ½è¯´æ˜Ž:	æ•°æ®æº¢å‡ºä¸­æ–­æ ‡å¿—æ¸…é™¤
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chn			è¦è®¾ç½®çš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11
+* è¾“    å‡º: æ— 
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 void ADC_IntOVFClr(ADC_TypeDef * ADCx, uint32_t chn)
 {
@@ -407,12 +482,12 @@ void ADC_IntOVFClr(ADC_TypeDef * ADCx, uint32_t chn)
 }
 
 /****************************************************************************************************************************************** 
-* º¯ÊýÃû³Æ:	ADC_IntOVFStat()
-* ¹¦ÄÜËµÃ÷:	Êý¾ÝÒç³öÖÐ¶Ï×´Ì¬
-* Êä    Èë: ADC_TypeDef * ADCx		Ö¸¶¨Òª±»ÉèÖÃµÄADC£¬¿ÉÈ¡Öµ°üÀ¨ADC0
-*			uint32_t chn			Òª²éÑ¯µÄÍ¨µÀ£¬ÓÐÐ§ÖµADC_CH0¡¢ADC_CH1¡¢... ... ¡¢ADC_CH11
-* Êä    ³ö: uint32_t				1 ¸ÃÍ¨µÀÍê³ÉÁË×ª»»    0 ¸ÃÍ¨µÀÎ´Íê³É×ª»»
-* ×¢ÒâÊÂÏî: ÎÞ
+* å‡½æ•°åç§°:	ADC_IntOVFStat()
+* åŠŸèƒ½è¯´æ˜Ž:	æ•°æ®æº¢å‡ºä¸­æ–­çŠ¶æ€
+* è¾“    å…¥: ADC_TypeDef * ADCx		æŒ‡å®šè¦è¢«è®¾ç½®çš„ADCï¼Œå¯å–å€¼åŒ…æ‹¬ADC0
+*			uint32_t chn			è¦æŸ¥è¯¢çš„é€šé“ï¼Œæœ‰æ•ˆå€¼ADC_CH0ã€ADC_CH1ã€... ... ã€ADC_CH11
+* è¾“    å‡º: uint32_t				1 è¯¥é€šé“å®Œæˆäº†è½¬æ¢    0 è¯¥é€šé“æœªå®Œæˆè½¬æ¢
+* æ³¨æ„äº‹é¡¹: æ— 
 ******************************************************************************************************************************************/
 uint32_t ADC_IntOVFStat(ADC_TypeDef * ADCx, uint32_t chn)
 {
@@ -420,3 +495,5 @@ uint32_t ADC_IntOVFStat(ADC_TypeDef * ADCx, uint32_t chn)
 	
 	return (ADCx->IF & (0x01 << (idx*2+1))) ? 1 : 0;
 }
+
+#endif
